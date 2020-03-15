@@ -78,7 +78,7 @@
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel, SchemeHid, SchemeStatus, SchemeTagsSel, SchemeTagsNorm, SchemeInfoSel, SchemeInfoNorm }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeHid }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetSystemTray, NetSystemTrayOP, NetSystemTrayOrientation, NetSystemTrayOrientationHorz,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -197,7 +197,6 @@ static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
-static int drawstatusbar(Monitor *m, int bh,int stw, char* text);
 static void drawbars(void);
 static void enqueue(Client *c);
 static void enqueuestack(Client *c);
@@ -289,6 +288,8 @@ static void updatesystrayiconstate(Client *i, XPropertyEvent *ev);
 static void updatetitle(Client *c);
 static void updatewindowtype(Client *c);
 static void updatewmhints(Client *c);
+static void setnextlayout(const Arg *arg);
+static void view_adjacent(const Arg *arg);
 static void view(const Arg *arg);
 static Client *wintoclient(Window w);
 static Monitor *wintomon(Window w);
@@ -876,7 +877,6 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 	short isCode = 0;
 	char *text;
 	char *p;
-	stw = stw -2;
 
 	len = strlen(stext) + 1 ;
 	if (!(text = (char*) malloc(sizeof(char)*len)))
@@ -892,7 +892,7 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 			if (!isCode) {
 				isCode = 1;
 				text[i] = '\0';
-				w += TEXTW(text) - lrpad / 2 + 2;
+				w += TEXTW(text) - lrpad;
 				text[i] = '^';
 				if (text[++i] == 'f')
 					w += atoi(text + ++i);
@@ -904,16 +904,18 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 		}
 	}
 	if (!isCode)
-		w += TEXTW(text) - lrpad / 2 + 2;
+		w += TEXTW(text) - lrpad;
 	else
 		isCode = 0;
 	text = p;
 
-	w += 1; /* 1px padding on both sides */
-	ret = x = m->ww - w;
+	w += 2; /* 1px padding on both sides */
+	ret = m->ww - w;
+	x = m->ww - w - stw;
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 	drw_rect(drw, x, 0, w, bh, 1, 1);
 	x++;
 
@@ -924,8 +926,8 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 			isCode = 1;
 
 			text[i] = '\0';
-			w = TEXTW(text) - lrpad / 2 + 2;
-			drw_text(drw, x - stw, 0, w, bh, lrpad / 2 - 2, text, 0);
+			w = TEXTW(text) - lrpad;
+			drw_text(drw, x, 0, w, bh, 0, text, 0);
 
 			x += w;
 
@@ -935,10 +937,17 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 					char buf[8];
 					memcpy(buf, (char*)text+i+1, 7);
 					buf[7] = '\0';
-					drw_clr_create(drw, &drw->scheme[ColFg], buf,alphas[i]);
+					drw_clr_create(drw, &drw->scheme[ColFg], buf, 0);
+					i += 7;
+				} else if (text[i] == 'b') {
+					char buf[8];
+					memcpy(buf, (char*)text+i+1, 7);
+					buf[7] = '\0';
+					drw_clr_create(drw, &drw->scheme[ColBg], buf, 0);
 					i += 7;
 				} else if (text[i] == 'd') {
 					drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+					drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 				} else if (text[i] == 'r') {
 					int rx = atoi(text + ++i);
 					while (text[++i] != ',');
@@ -961,8 +970,8 @@ drawstatusbar(Monitor *m, int bh,int stw, char* stext) {
 	}
 
 	if (!isCode) {
-		w = TEXTW(text) - lrpad / 2 + 2;
-		drw_text(drw, x - stw, 0, w, bh, 0, text, 0);
+		w = TEXTW(text) - lrpad;
+		drw_text(drw, x, 0, w, bh, 0, text, 0);
 	}
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
@@ -975,8 +984,8 @@ void
 drawbar(Monitor *m)
 {
 	int x, w, sw = 0, stw = 0, n = 0, scm;
-	int boxs = drw->fonts->h / 9;
-	int boxw = drw->fonts->h / 6 + 2;
+	// int boxs = drw->fonts->h / 9;
+	// int boxw = drw->fonts->h / 6 + 2;
 	unsigned int i, occ = 0, urg = 0;
 	Client *c;
 
@@ -985,10 +994,10 @@ drawbar(Monitor *m)
 
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
-		// drw_setscheme(drw, scheme[SchemeStatus]);
+		// drw_setscheme(drw, scheme[SchemeNorm]);
 		// sw = TEXTW(stext) - lrpad / 2 + 2; /* 2px right padding */
 		// drw_text(drw, m->ww - sw - stw, 0, sw, bh, lrpad / 2 - 2, stext, 0);
-		sw = m->ww - drawstatusbar(m, bh,stw, stext);
+		sw = m->ww - drawstatusbar(m, bh, stw, stext);
 	}
 
 	resizebarwin(m);
@@ -1006,12 +1015,12 @@ drawbar(Monitor *m)
 		continue;
 
 		w = TEXTW(tags[i]);
-		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeTagsSel : SchemeTagsNorm]);
+		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
 		x += w;
 	}
 	w = blw = TEXTW(m->ltsymbol);
-	drw_setscheme(drw, scheme[SchemeTagsNorm]);
+	drw_setscheme(drw, scheme[SchemeNorm]);
 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
 
 	if ((w = m->ww - sw - stw - x) > bh) {
@@ -1039,7 +1048,7 @@ drawbar(Monitor *m)
 				x += tabw;
 			}
 		} else {
-			drw_setscheme(drw, scheme[SchemeInfoNorm]);
+			drw_setscheme(drw, scheme[SchemeNorm]);
 			drw_rect(drw, x, 0, w, bh, 1, 1);
 		}
 	}
@@ -2173,9 +2182,8 @@ setup(void)
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	/* init appearance */
-	// scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
 	scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
-	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], alphas[i], 3);
+	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], alphas[0], 3);
 	for (i = 0; i < LENGTH(colors); i++)
 		scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
 	/* init system tray */
@@ -2839,6 +2847,36 @@ updatewmhints(Client *c)
 	}
 }
 
+void
+setnextlayout(const Arg *arg) {
+    Arg newarg = {0};
+    size_t i = 0;
+    while(i < LENGTH(layouts) && selmon->lt[selmon->sellt] != &layouts[i])
+        i++;
+    newarg.v = &layouts[(i + 1) % LENGTH(layouts)]; // you can do it without '%'
+    setlayout(&newarg);
+}
+void
+view_adjacent(const Arg *arg)
+{
+	int i, curtags;
+	int seltag = 0;
+	Arg a;
+
+	curtags = selmon->tagset[selmon->seltags];
+	for(i = 0; i < LENGTH(tags); i++)
+		if(curtags & (1 << i)){
+			seltag = i;
+			break;
+		}
+
+	seltag = (seltag + arg->i) % (int)LENGTH(tags);
+	if(seltag < 0)
+		seltag += LENGTH(tags);
+
+	a.i = (1 << seltag);
+	view(&a);
+}
 void
 view(const Arg *arg)
 {
