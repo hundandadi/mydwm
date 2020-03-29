@@ -11,14 +11,14 @@ static const unsigned int gappoh    = 10;       /* horiz outer gap between windo
 static const unsigned int gappov    = 10;       /* vert outer gap between windows and screen edge */
 static const int smartgaps          = 1;        /* 1 means no outer gap when there is only one window */
 static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
-static const unsigned int systrayspacing = 1;   /* systray spacing */
+static const unsigned int systrayspacing = 0;   /* systray spacing */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
 static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const Bool viewontag         = True;     /* Switch view on tag switch */
-static const char *fonts[]          = { "Hack Nerd Font:size=12" ,"PingFang SC:size=12"};
-static const char dmenufont[]       = "Hack Nerd Font:size=12";
+static const char *fonts[]          = { "PingFang SC:style=Regular:size=12","Hack Nerd Font:style=Regular:size=12"};
+static const char dmenufont[]       = "SauceCodePro Nerd Font Mono:size=12";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
@@ -39,7 +39,7 @@ static const unsigned int alphas[][3]      = {
 };
 
 /* tagging */
-static const char *tags[] = { "", "", "", "", "", "", "", "", "" };
+static const char *tags[] = { " ", " ", " ", " ", " ", " ", " ", " ", " " };
 
 static const Rule rules[] = {
 	/* xprop(1):
@@ -48,7 +48,7 @@ static const Rule rules[] = {
 	 */
 	/* class      						instance    		title       		tags mask     isfloating   monitor */
 	{ "Code",  							NULL,       		NULL,       		1 << 2,       0,           -1 },
-	{ "st-256color",  					NULL,       		NULL,       		1 << 0,       0,           -1 },
+	{ "alacritty",  					NULL,       		NULL,       		1 << 0,       0,           -1 },
 	{ "Thunar",  						NULL,       		NULL,       		1 << 3,       0,           -1 },
 	{ "Google-chrome",  				NULL,       		NULL,       		1 << 1,       0,           -1 },
 	{ "Wine",  	  						NULL,       		NULL,       		0,       	  1,           -1 },
@@ -86,7 +86,7 @@ static const Layout layouts[] = {
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
-static const char *termcmd[]  = { "st", NULL };
+static const char *termcmd[]  = { "alacritty", NULL };
 static const char *browsercmd[]  = { "google-chrome-stable", NULL };
 static const char *roficmd[]  = { "rofi","-show","drun","-theme","Arc","-dpi","120", NULL };
 static const char *upvol[]   = { "/home/ss/.scripts/vol-up.sh",  NULL };
@@ -96,6 +96,7 @@ static const char *mutevol[] = { "/home/ss/.scripts/vol-toggle.sh",  NULL };
 static Key keys[] = {
 	/* modifier                     key        					function        		argument */
 	{ MODKEY,                       XK_d,      					spawn,          		{.v = roficmd } },
+	{ Mod1Mask,             		XK_space,  					spawn, 					{.v = dmenucmd } },
 	{ MODKEY,             			XK_Return, 					spawn,          		{.v = termcmd } },
 	{ MODKEY|ShiftMask,             XK_w,      					spawn,          		{.v = browsercmd } },
 	{ MODKEY,                       XK_b,      					togglebar,      		{0} },
