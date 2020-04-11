@@ -17,8 +17,8 @@ static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const Bool viewontag         = True;     /* Switch view on tag switch */
-static const char *fonts[]          = { "PingFang SC:style=Regular:size=12","Hack Nerd Font:style=Regular:size=12"};
-static const char dmenufont[]       = "SauceCodePro Nerd Font Mono:size=12";
+static const char *fonts[]          = { "PingFang SC:style=Regular:size=12","Hack Nerd Font:size=12"};
+static const char dmenufont[]       = "Hack Nerd Font:size=12";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
@@ -48,7 +48,7 @@ static const Rule rules[] = {
 	 */
 	/* class      						instance    		title       		tags mask     isfloating   monitor */
 	{ "Code",  							NULL,       		NULL,       		1 << 2,       0,           -1 },
-	{ "alacritty",  					NULL,       		NULL,       		1 << 0,       0,           -1 },
+	{ "Alacritty",  					NULL,       		NULL,       		1 << 0,       0,           -1 },
 	{ "Thunar",  						NULL,       		NULL,       		1 << 3,       0,           -1 },
 	{ "Google-chrome",  				NULL,       		NULL,       		1 << 1,       0,           -1 },
 	{ "Wine",  	  						NULL,       		NULL,       		0,       	  1,           -1 },
